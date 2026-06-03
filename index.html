@@ -220,29 +220,32 @@
   /* ---------- HUD ---------- */
   #hud {
     position: absolute; top: 0; left: 0; right: 0; z-index: 12;
-    padding: 12px 14px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 8px;
-    background: linear-gradient(180deg, rgba(5,13,24,0.85), transparent);
+    padding: 10px 14px 14px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+    background: linear-gradient(180deg, rgba(5,13,24,0.9), transparent);
   }
-  .hud-name { font-weight: bold; font-size: 15px; letter-spacing: 0.3px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.6); max-width: 130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .shots {
-    display: flex; gap: 6px;
+  #scoreboard {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.6);
   }
+  #scoreboard .team { display: flex; align-items: center; gap: 8px; }
+  #scoreboard .tlabel { font-size: 13px; opacity: 0.92; max-width: 96px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #scoreboard .tgoals { font-size: 26px; color: var(--accent); min-width: 22px; text-align: center; }
+  #scoreboard .vs { opacity: 0.55; font-size: 18px; }
+  #roundInfo { text-align: center; font-size: 13px; opacity: 0.9; letter-spacing: 0.5px; }
+  .tracks { display: flex; justify-content: center; gap: 18px; }
+  .track { display: flex; align-items: center; gap: 6px; }
+  .track .tk { font-size: 14px; }
+  .shots { display: flex; gap: 5px; }
   .shot-dot {
-    width: 16px; height: 16px; border-radius: 50%;
+    width: 14px; height: 14px; border-radius: 50%;
     background: rgba(255,255,255,0.18);
     border: 2px solid rgba(255,255,255,0.45);
     transition: transform .25s, background .25s;
   }
-  .shot-dot.goal { background: var(--good); border-color: #fff; box-shadow: 0 0 10px var(--good); transform: scale(1.12); }
+  .shot-dot.goal { background: var(--good); border-color: #fff; box-shadow: 0 0 9px var(--good); transform: scale(1.12); }
   .shot-dot.miss { background: var(--bad); border-color: #fff; }
-  .score-badge {
-    background: var(--accent); color: var(--ink); font-weight: 900;
-    padding: 5px 12px; border-radius: 20px; font-size: 15px;
-    box-shadow: 0 3px 0 rgba(0,0,0,0.25);
-  }
 
   /* ---------- Controls / Banner ---------- */
   #controls {
@@ -316,6 +319,17 @@
 
   .result-num { font-size: 72px; font-weight: 900; color: var(--accent); line-height: 1; margin: 6px 0; }
   .result-line { font-size: 16px; opacity: 0.9; margin-bottom: 4px; }
+  .result-big { font-size: 52px; font-weight: 900; line-height: 1; margin-bottom: 6px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+  .result-big.win  { color: var(--good); text-shadow: 0 0 26px rgba(33,208,122,0.6); }
+  .result-big.lose { color: var(--bad); }
+  .result-big.draw { color: #cdd3dc; }
+  .result-score { font-size: 24px; font-weight: 900; margin: 8px 0 4px; opacity: 0.95; }
+  .result-score b { color: var(--accent); font-size: 30px; }
+  .res { font-size: 12px; font-weight: 900; padding: 2px 9px; border-radius: 10px; }
+  .res.win  { background: var(--good); color: #04331d; }
+  .res.lose { background: var(--bad); color: #fff; }
+  .res.draw { background: #5a6b82; color: #fff; }
   .new-record {
     display: inline-block; margin: 10px 0; padding: 6px 16px; border-radius: 20px;
     background: var(--accent-2); font-weight: 900; font-size: 14px; letter-spacing: 1px;
@@ -471,9 +485,16 @@
 
   <!-- HUD -->
   <div id="hud">
-    <span class="hud-name" id="hudName">플레이어</span>
-    <div class="shots" id="shots"></div>
-    <span class="score-badge"><span id="scoreNum">0</span> / 5</span>
+    <div id="scoreboard">
+      <div class="team"><span class="tlabel" id="meLabel">나</span><span class="tgoals" id="myGoals">0</span></div>
+      <span class="vs">:</span>
+      <div class="team"><span class="tgoals" id="oppGoals">0</span><span class="tlabel">컴퓨터</span></div>
+    </div>
+    <div id="roundInfo">공격 1 / 5</div>
+    <div class="tracks">
+      <div class="track"><span class="tk">🥅</span><div class="shots" id="atkDots"></div></div>
+      <div class="track"><span class="tk">🧤</span><div class="shots" id="defDots"></div></div>
+    </div>
   </div>
 
   <!-- Controls -->
@@ -489,7 +510,7 @@
   <div class="overlay" id="startOverlay">
     <div class="ball-icon">⚽</div>
     <div class="title">ALEX<br>SOCCER</div>
-    <div class="subtitle">5번의 킥, 골키퍼를 뚫어라</div>
+    <div class="subtitle">공격 5번 + 수비 5번, 컴퓨터와 승부!</div>
     <div class="field">
       <input id="nameInput" maxlength="12" placeholder="이름을 입력하세요" />
     </div>
@@ -501,12 +522,13 @@
 
   <!-- Result overlay -->
   <div class="overlay hidden" id="resultOverlay">
+    <div class="result-big" id="resultBig">WIN!</div>
     <div class="result-line" id="resultTitle">경기 종료!</div>
-    <div class="result-num"><span id="finalScore">0</span><span style="font-size:34px;opacity:.6">/5</span></div>
+    <div class="result-score" id="resultScore">나 0 : 0 컴퓨터</div>
     <div id="recordBadge"></div>
     <div class="board" id="resultBoard"></div>
     <div class="btnrow">
-      <button class="btn" id="againBtn">다시 차기 🔁</button>
+      <button class="btn" id="againBtn">다시 하기 🔁</button>
       <button class="btn secondary" id="homeBtn">처음으로</button>
     </div>
   </div>
@@ -514,7 +536,7 @@
   <!-- Board overlay -->
   <div class="overlay hidden" id="boardOverlay">
     <div class="title" style="font-size:30px;">🏆 명예의 전당</div>
-    <div class="subtitle">최고 득점 랭킹</div>
+    <div class="subtitle">승패 · 최고 기록 랭킹</div>
     <div class="board" id="boardList"></div>
     <div class="btnrow">
       <button class="btn secondary" id="boardBackBtn">← 돌아가기</button>
@@ -537,18 +559,22 @@
   const guideV = $("guideV"), guideH = $("guideH");
   const powerWrap = $("powerWrap"), powerFill = $("powerFill");
   const actionBtn = $("actionBtn"), hint = $("hint");
-  const shotsEl = $("shots"), scoreNum = $("scoreNum"), hudName = $("hudName");
+  const atkDots = $("atkDots"), defDots = $("defDots");
   const flash = $("flash");
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const STORAGE_KEY = "penaltyShooters.leaderboard.v1";
   const BLOB_URL = "https://jsonblob.com/api/jsonBlob/019e8d6e-bd07-782a-86b3-acb8215c0a68";
   const TOTAL_KICKS = 5;
 
   // ---------- Game state ----------
-  let state = "idle";   // idle | aimX | aimY | power | shooting | done
-  let kick = 0, score = 0;
+  let state = "idle";   // idle | aimX | aimY | power | saveX | saveY | busy | done
+  let half = "attack";  // attack (you kick) | defense (you save)
+  let idx = 0;          // shot index within the current half (0..4)
+  let myGoals = 0, oppGoals = 0;
   let playerName = "플레이어";
-  let aimX = 0, aimY = 0.5, power = 0;     // chosen values
+  let aimX = 0, aimY = 0.5, power = 0;     // attack aim
+  let saveX = 0, saveY = 0.5;              // defense dive target
   let oscPos = 0, oscDir = 1;              // generic oscillator
   let raf = null;
 
@@ -560,18 +586,38 @@
   function saveLocal(list) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
   }
-  // Merge any number of score arrays into one entry per name, keeping the best score.
+  // Each entry: {name, my, opp?, date}. Legacy entries may have {name, score}.
+  function rankTuple(e) {
+    const my = (e.my != null) ? +e.my : (+e.score || 0);
+    const opp = (e.opp != null) ? +e.opp : null;
+    const r = (opp == null) ? 1 : (my > opp ? 2 : (my === opp ? 1 : 0)); // win2 draw1 lose0
+    return { my, opp, r };
+  }
+  function cmpEntries(a, b) {            // > 0 when a is the better record
+    const A = rankTuple(a), B = rankTuple(b);
+    if (A.r !== B.r) return A.r - B.r;
+    if (A.my !== B.my) return A.my - B.my;
+    const ao = A.opp == null ? 99 : A.opp, bo = B.opp == null ? 99 : B.opp;
+    if (ao !== bo) return bo - ao;        // fewer goals conceded is better
+    return (+b.date || 0) - (+a.date || 0); // older record wins ties
+  }
+  function normalizeEntry(e) {
+    const my = (e.my != null) ? +e.my : (+e.score || 0);
+    const opp = (e.opp != null) ? +e.opp : null;
+    const o = { name: e.name, my, date: +e.date || Date.now() };
+    if (opp != null) o.opp = opp;
+    return o;
+  }
+  function resLabel(t) { return t.r === 2 ? "승" : t.r === 1 ? "무" : "패"; }
+  // Merge score arrays into one best record per name.
   function mergeScores(...lists) {
     const best = new Map();
     lists.flat().forEach((e) => {
       if (!e || typeof e.name !== "string") return;
-      const name = e.name, score = +e.score || 0, date = +e.date || Date.now();
-      const cur = best.get(name);
-      if (!cur || score > cur.score || (score === cur.score && date < cur.date)) {
-        best.set(name, { name, score, date });
-      }
+      const cur = best.get(e.name);
+      if (!cur || cmpEntries(e, cur) > 0) best.set(e.name, normalizeEntry(e));
     });
-    return [...best.values()].sort((a, b) => b.score - a.score || a.date - b.date);
+    return [...best.values()].sort((a, b) => cmpEntries(b, a));
   }
   async function fetchRemote() {
     try {
@@ -598,22 +644,26 @@
     if (remote === null) return { list: mergeScores(local), online: false };
     const merged = mergeScores(remote, local);
     saveLocal(merged);
-    const changed = merged.length !== remote.length ||
-      merged.some(m => !remote.find(r => r.name === m.name && +r.score === m.score));
+    const changed = JSON.stringify(merged) !== JSON.stringify(mergeScores(remote));
     if (changed) await pushRemote(merged);
     return { list: merged, online: true };
   }
-  // Submit a finished game; returns {list, isRecord, prevBest, online}.
-  async function submitScore(name, sc) {
+  // Submit a finished match; returns {list, isRecord, prevText, online}.
+  async function submitScore(name, my, opp) {
     const remote = await fetchRemote();
     const local = loadLocal();
+    const entry = { name, my, opp, date: Date.now() };
     const prev = mergeScores(remote || [], local).find(e => e.name === name);
-    const prevBest = prev ? prev.score : -1;
-    const isRecord = sc > prevBest;
-    const merged = mergeScores(remote || [], local, [{ name, score: sc, date: Date.now() }]);
+    const isRecord = !prev || cmpEntries(entry, prev) > 0;
+    let prevText = "";
+    if (prev) {
+      const t = rankTuple(prev);
+      prevText = (t.opp == null) ? `${t.my}골` : `${t.my} : ${t.opp} (${resLabel(t)})`;
+    }
+    const merged = mergeScores(remote || [], local, [entry]);
     saveLocal(merged);
     const online = (remote !== null) ? await pushRemote(merged) : false;
-    return { list: merged, isRecord, prevBest, online };
+    return { list: merged, isRecord, prevText, online };
   }
   function loadingBoard(container) {
     container.innerHTML = '<div class="empty-board">랭킹 불러오는 중…</div>';
@@ -622,13 +672,21 @@
     if (!list || !list.length) { container.innerHTML = '<div class="empty-board">아직 기록이 없어요.<br>첫 번째 도전자가 되어보세요!</div>'; return; }
     let html = '<h3>RANKING</h3>';
     list.slice(0, 20).forEach((e, i) => {
+      const t = rankTuple(e);
       const me = (e.name === highlight) ? " me" : "";
       const rcls = i < 3 ? " r" + (i + 1) : "";
       const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+      let badge = "", scoreText;
+      if (t.opp == null) { scoreText = `${t.my}골`; }
+      else {
+        const res = t.r === 2 ? "win" : t.r === 1 ? "draw" : "lose";
+        badge = `<span class="res ${res}">${resLabel(t)}</span>`;
+        scoreText = `${t.my} : ${t.opp}`;
+      }
       html += `<div class="row${me}">
         <span class="rank${rcls}">${medal}</span>
         <span class="rname">${escapeHtml(e.name)}</span>
-        <span class="rscore">${e.score} / 5</span>
+        ${badge}<span class="rscore">${scoreText}</span>
       </div>`;
     });
     container.innerHTML = html;
@@ -636,17 +694,23 @@
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   // ---------- HUD ----------
-  function buildShots() {
-    shotsEl.innerHTML = "";
-    for (let i = 0; i < TOTAL_KICKS; i++) {
-      const d = document.createElement("div");
-      d.className = "shot-dot"; d.dataset.i = i;
-      shotsEl.appendChild(d);
-    }
+  function buildTracks() {
+    [atkDots, defDots].forEach((tr) => {
+      tr.innerHTML = "";
+      for (let i = 0; i < TOTAL_KICKS; i++) {
+        const d = document.createElement("div");
+        d.className = "shot-dot";
+        tr.appendChild(d);
+      }
+    });
   }
-  function markShot(i, goal) {
-    const dot = shotsEl.children[i];
-    if (dot) dot.classList.add(goal ? "goal" : "miss");
+  function markDot(tr, i, good) {
+    const d = tr.children[i];
+    if (d) d.classList.add(good ? "goal" : "miss");
+  }
+  function updateScore() {
+    $("myGoals").textContent = myGoals;
+    $("oppGoals").textContent = oppGoals;
   }
 
   // ---------- Geometry ----------
@@ -729,26 +793,26 @@
     });
   }
 
-  // ---------- Shoot ----------
-  function shoot() {
+  // ---------- Attack: you shoot ----------
+  function shootAttack() {
     cancelAnimationFrame(raf);
-    state = "shooting";
-    reticle.style.display = "none";
-    guideV.style.display = "none"; guideH.style.display = "none";
+    state = "busy";
+    hideAimUI();
     actionBtn.textContent = "…"; actionBtn.disabled = true;
     hint.textContent = "";
 
-    // High power adds horizontal & vertical sway (less accurate)
     const swayX = (Math.random() * 2 - 1) * power * 0.12;
     const swayY = (Math.random() * 2 - 1) * power * 0.10;
-    let landX = Math.max(-1.08, Math.min(1.08, aimX + swayX));
-    let landY = Math.max(-0.05, Math.min(1.12, aimY + swayY));
+    const landX = clamp(aimX + swayX, -1.08, 1.08);
+    const landY = clamp(aimY + swayY, -0.05, 1.12);
+    const wide = Math.abs(landX) > 1.0, over = landY > 1.0;
 
-    const wide = Math.abs(landX) > 1.0;
-    const over = landY > 1.0;
-
-    const gk = decideKeeper(aimX, aimY, kick);
-    animateShot(landX, landY, wide, over, gk);
+    const gk = decideKeeper(aimX, aimY, idx);
+    setTimeout(() => diveKeeper(gk.gx, gk.gy), 95);   // keeper reacts after the kick
+    flyBall(landX, landY, wide, over, () => {
+      const scored = (wide || over) ? false : !isCaught();
+      resolveAttack(scored, wide || over);
+    });
   }
 
   // Keeper guesses a 2D spot to dive toward. Skill rises each kick.
@@ -769,23 +833,22 @@
     return { gx, gy };
   }
 
-  function animateShot(landX, landY, wide, over, gk) {
-    // Compute the keeper's dive as a real on-screen movement toward (gk.gx, gk.gy).
+  // Move the keeper as a real on-screen dive toward (gx, gy). Shared by AI & player.
+  function diveKeeper(gx, gy) {
     const z = aimZone.getBoundingClientRect();
-    const travelX = gk.gx * z.width  * 0.50;     // px the body flies sideways
-    const liftY   = gk.gy * z.height * 0.58;     // px the body lifts for high shots
-    const lean    = gk.gx * 74;                  // near-horizontal flying dive
-    const stretch = 1 + Math.abs(gk.gx) * 0.12;  // body extends as it stretches
+    const travelX = gx * z.width  * 0.50;
+    const liftY   = gy * z.height * 0.58;
+    const lean    = gx * 74;
+    const stretch = 1 + Math.abs(gx) * 0.12;
+    if (gx < -0.2) keeper.classList.add(gy > 0.55 ? "reach-up" : "reach-l");
+    else if (gx > 0.2) keeper.classList.add(gy > 0.55 ? "reach-up" : "reach-r");
+    else if (gy > 0.55) keeper.classList.add("reach-up");
+    keeper.style.transform =
+      `translate(${travelX}px, ${-liftY}px) rotate(${lean}deg) scale(${stretch})`;
+  }
 
-    // Reaction delay: keeper commits just after the ball is struck
-    setTimeout(() => {
-      if (gk.gx < -0.2) keeper.classList.add(gk.gy > 0.55 ? "reach-up" : "reach-l");
-      else if (gk.gx > 0.2) keeper.classList.add(gk.gy > 0.55 ? "reach-up" : "reach-r");
-      else if (gk.gy > 0.55) keeper.classList.add("reach-up");
-      keeper.style.transform =
-        `translate(${travelX}px, ${-liftY}px) rotate(${lean}deg) scale(${stretch})`;
-    }, 95);
-
+  // Animate the ball to (landX, landY); call onArrive once it (and the dive) settle.
+  function flyBall(landX, landY, wide, over, onArrive) {
     const target = aimToStagePx(landX, landY);
     const finalLeftPct = wide ? (landX > 0 ? 97 : 3) : (target.x / target.sw) * 100;
     const finalBottomPct = over ? 80 : (1 - target.y / target.sh) * 100;
@@ -806,17 +869,7 @@
       ballShadow.style.opacity = "0.25";
     });
 
-    // Judge once the ball has arrived AND the keeper has settled into the dive.
-    setTimeout(() => {
-      let isGoal, saved, missedNet = wide || over;
-      if (missedNet) {
-        isGoal = false; saved = false;
-      } else {
-        saved = isCaught();
-        isGoal = !saved;
-      }
-      finishKick(isGoal, saved, missedNet);
-    }, flightMs + 20);
+    setTimeout(onArrive, flightMs + 20);
   }
 
   // WYSIWYG save check: measure where the gloves and ball actually are on screen.
@@ -834,20 +887,92 @@
     return nearest <= reach;
   }
 
-  function finishKick(isGoal, saved, missedNet) {
+  function resolveAttack(scored, missedNet) {
     state = "done";
-    if (isGoal) {
-      score++; scoreNum.textContent = score;
-      showFlash("⚽ 골인!", "var(--good)");
-      keeper.animate([{filter:"brightness(1)"},{filter:"brightness(1.4)"},{filter:"brightness(1)"}], {duration:300});
-    } else if (missedNet) {
-      showFlash("빗나감!", "var(--bad)");
-    } else {
-      showFlash("선방!", "var(--bad)");
+    if (scored) { myGoals++; updateScore(); showFlash("⚽ 골인!", "var(--good)"); keeperFlash(); }
+    else if (missedNet) showFlash("빗나감!", "var(--bad)");
+    else showFlash("막혔다!", "var(--bad)");
+    markDot(atkDots, idx, scored);
+    idx++;
+    setTimeout(() => { (idx >= TOTAL_KICKS) ? startDefensePhase() : (resetForNext(), beginAttackTurn()); }, 1300);
+  }
+
+  // ---------- Defense: you save ----------
+  function startSaveX() {
+    state = "saveX"; reticle.style.display = "block";
+    guideV.style.display = "none"; guideH.style.display = "none";
+    actionBtn.textContent = "좌우 고정 ◀▶";
+    hint.textContent = "상대 슛 방향을 예측! 막을 가로 위치를 정하세요";
+    oscPos = (Math.random() * 1.4 - 0.7); oscDir = 1; saveY = 0.5;
+    runOscillator((v) => placeReticle(v, saveY));
+  }
+  function lockSaveX() {
+    cancelAnimationFrame(raf); saveX = oscPos;
+    const p = aimToPct(saveX, saveY);
+    guideV.style.left = p.leftPct + "%"; guideV.style.display = "block";
+    state = "saveY"; actionBtn.textContent = "막기! 🧤";
+    hint.textContent = "막을 높이를 정하고 누르세요";
+    oscPos = 0; oscDir = 1;
+    runOscillator((v) => { saveY = (v + 1) / 2; placeReticle(saveX, saveY); });
+  }
+  function lockSaveY() {
+    cancelAnimationFrame(raf);
+    state = "busy"; hideAimUI();
+    actionBtn.textContent = "…"; actionBtn.disabled = true; hint.textContent = "";
+    diveKeeper(clamp(saveX, -0.98, 0.98), clamp(saveY, 0, 0.98));   // you committed your dive
+    const shot = decideKicker(idx);
+    flyBall(shot.x, shot.y, shot.wide, shot.over, () => {
+      const conceded = (shot.wide || shot.over) ? false : !isCaught();
+      resolveDefense(conceded, shot.wide || shot.over);
+    });
+  }
+  // Computer kicker picks where to shoot.
+  function decideKicker(i) {
+    if (Math.random() < 0.12) {                 // opponent misses the net
+      return (Math.random() < 0.5)
+        ? { x: (Math.random() < 0.5 ? -1.15 : 1.15), y: 0.5, wide: true, over: false }
+        : { x: (Math.random() * 1.4 - 0.7), y: 1.15, wide: false, over: true };
     }
-    markShot(kick, isGoal);
-    kick++;
-    setTimeout(() => { (kick >= TOTAL_KICKS) ? endGame() : resetForNext(); }, 1250);
+    let x, y;
+    if (Math.random() < 0.62) {                 // aim a corner
+      x = (Math.random() < 0.5 ? -1 : 1) * (0.45 + Math.random() * 0.5);
+      y = 0.35 + Math.random() * 0.55;
+    } else {                                    // central / low
+      x = Math.random() * 0.7 - 0.35;
+      y = Math.random() * 0.55;
+    }
+    return { x: clamp(x, -0.98, 0.98), y: clamp(y, 0, 0.98), wide: false, over: false };
+  }
+  function resolveDefense(conceded, missedNet) {
+    state = "done";
+    if (conceded) { oppGoals++; updateScore(); showFlash("실점…", "var(--bad)"); }
+    else if (missedNet) showFlash("상대 실축!", "var(--good)");
+    else { showFlash("🧤 선방!", "var(--good)"); keeperFlash(); }
+    markDot(defDots, idx, !conceded);
+    idx++;
+    setTimeout(() => { (idx >= TOTAL_KICKS) ? endGame() : (resetForNext(), beginDefenseTurn()); }, 1300);
+  }
+
+  // ---------- Turn / phase ----------
+  function beginAttackTurn() {
+    half = "attack"; state = "idle";
+    $("roundInfo").textContent = `🥅 공격 ${idx + 1} / ${TOTAL_KICKS}`;
+    actionBtn.disabled = false; actionBtn.textContent = "조준 ◎";
+    hint.textContent = "내 차례! [조준]을 눌러 골대 빈 곳을 노려요";
+  }
+  function beginDefenseTurn() {
+    half = "defense"; state = "idle";
+    $("roundInfo").textContent = `🧤 수비 ${idx + 1} / ${TOTAL_KICKS}`;
+    actionBtn.disabled = false; actionBtn.textContent = "막기 위치 ◎";
+    hint.textContent = "상대 슛이 올 곳을 예측! [막기 위치]를 눌러요";
+  }
+  function startDefensePhase() {
+    idx = 0; resetForNext();
+    showFlash("🧤 후반 · 수비!", "var(--accent)");
+    beginDefenseTurn();
+  }
+  function keeperFlash() {
+    keeper.animate([{ filter: "brightness(1)" }, { filter: "brightness(1.5)" }, { filter: "brightness(1)" }], { duration: 300 });
   }
 
   function showFlash(text, color) {
@@ -857,6 +982,11 @@
     flash.classList.remove("show"); void flash.offsetWidth; flash.classList.add("show");
   }
 
+  function hideAimUI() {
+    reticle.style.display = "none";
+    guideV.style.display = "none"; guideH.style.display = "none";
+    powerWrap.style.display = "none"; powerFill.style.height = "0%";
+  }
   function resetForNext() {
     ball.style.transition = "none"; ballShadow.style.transition = "none";
     keeper.className = ""; keeper.style.transform = "";
@@ -865,45 +995,43 @@
     ballSkin.style.transition = "none"; ballSkin.style.transform = "rotate(0deg)";
     ballShadow.style.left = "50%"; ballShadow.style.bottom = "12%";
     ballShadow.style.width = "40px"; ballShadow.style.opacity = "1";
-    powerWrap.style.display = "none"; powerFill.style.height = "0%";
-    actionBtn.disabled = false; actionBtn.textContent = "조준";
+    hideAimUI();
+    actionBtn.disabled = false;
     state = "idle";
-    hint.textContent = `${kick + 1}번째 킥 — 준비!`;
   }
 
   // ---------- Game flow ----------
   function startGame() {
     const nm = $("nameInput").value.trim();
     playerName = nm || "플레이어";
-    hudName.textContent = playerName;
-    score = 0; kick = 0; scoreNum.textContent = "0";
-    buildShots();
+    $("meLabel").textContent = playerName;
+    myGoals = 0; oppGoals = 0; updateScore();
+    idx = 0; half = "attack";
+    buildTracks();
     $("startOverlay").classList.add("hidden");
     $("resultOverlay").classList.add("hidden");
     resetForNext();
-    hint.textContent = "1번째 킥 — 준비!";
+    showFlash("전반 · 공격!", "var(--accent)");
+    beginAttackTurn();
   }
 
   async function endGame() {
     state = "done";
-    $("finalScore").textContent = score;
-    let title = "경기 종료!";
-    if (score === TOTAL_KICKS) title = "🔥 퍼펙트!";
-    else if (score >= 4) title = "👏 훌륭해요!";
-    else if (score >= 2) title = "잘했어요!";
-    else title = "다음엔 더 잘할 수 있어요!";
-    $("resultTitle").textContent = title;
+    const result = myGoals > oppGoals ? "win" : (myGoals < oppGoals ? "lose" : "draw");
+    const big = $("resultBig");
+    big.className = "result-big " + result;
+    big.textContent = result === "win" ? "WIN! 🏆" : result === "lose" ? "LOSE 😢" : "DRAW 🤝";
+    $("resultTitle").textContent = result === "win" ? "이겼어요! 멋져요 👏"
+      : result === "lose" ? "아쉽게 졌어요" : "막상막하 무승부!";
+    $("resultScore").innerHTML = `${escapeHtml(playerName)} <b>${myGoals}</b> : <b>${oppGoals}</b> 컴퓨터`;
     $("recordBadge").innerHTML = "";
     loadingBoard($("resultBoard"));
     $("resultOverlay").classList.remove("hidden");
 
-    const { list, isRecord, prevBest, online } = await submitScore(playerName, score);
-    const badge = $("recordBadge");
-    if (isRecord) {
-      badge.innerHTML = '<span class="new-record">🎉 최고 기록 경신!</span>';
-    } else {
-      badge.innerHTML = `<div class="result-line" style="opacity:.6">내 최고 기록: ${Math.max(prevBest, score)} / 5</div>`;
-    }
+    const { list, isRecord, prevText, online } = await submitScore(playerName, myGoals, oppGoals);
+    $("recordBadge").innerHTML = isRecord
+      ? '<span class="new-record">🎉 자기 최고 기록 경신!</span>'
+      : `<div class="result-line" style="opacity:.6">내 최고 기록: ${prevText}</div>`;
     renderBoard($("resultBoard"), playerName, list);
     if (!online) {
       $("resultBoard").insertAdjacentHTML("afterbegin",
@@ -913,10 +1041,12 @@
 
   // ---------- Action button ----------
   function onAction() {
-    if (state === "idle") startAimX();
+    if (state === "idle") { half === "attack" ? startAimX() : startSaveX(); }
     else if (state === "aimX") lockAimX();
     else if (state === "aimY") lockAimY();
-    else if (state === "power") shoot();
+    else if (state === "power") shootAttack();
+    else if (state === "saveX") lockSaveX();
+    else if (state === "saveY") lockSaveY();
   }
 
   // ---------- Wire up ----------
@@ -955,7 +1085,7 @@
   });
 
   // init
-  buildShots();
+  buildTracks();
   $("nameInput").focus();
 })();
 </script>
