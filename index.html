@@ -541,6 +541,7 @@
   const flash = $("flash");
 
   const STORAGE_KEY = "penaltyShooters.leaderboard.v1";
+  const BLOB_URL = "https://jsonblob.com/api/jsonBlob/019e8d6e-bd07-782a-86b3-acb8215c0a68";
   const TOTAL_KICKS = 5;
 
   // ---------- Game state ----------
@@ -551,33 +552,76 @@
   let oscPos = 0, oscDir = 1;              // generic oscillator
   let raf = null;
 
-  // ---------- Leaderboard ----------
-  function loadBoard() {
+  // ---------- Leaderboard (shared online + local fallback) ----------
+  function loadLocal() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     catch (e) { return []; }
   }
-  function saveBoard(list) {
+  function saveLocal(list) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
   }
-  function recordScore(name, sc) {
-    const list = loadBoard();
-    const existing = list.find(e => e.name === name);
-    let isRecord = false, prevBest = existing ? existing.score : -1;
-    if (existing) {
-      if (sc > existing.score) { existing.score = sc; existing.date = Date.now(); isRecord = true; }
-    } else {
-      list.push({ name, score: sc, date: Date.now() });
-      isRecord = true;
-    }
-    list.sort((a, b) => b.score - a.score || a.date - b.date);
-    saveBoard(list);
-    return { isRecord, prevBest };
+  // Merge any number of score arrays into one entry per name, keeping the best score.
+  function mergeScores(...lists) {
+    const best = new Map();
+    lists.flat().forEach((e) => {
+      if (!e || typeof e.name !== "string") return;
+      const name = e.name, score = +e.score || 0, date = +e.date || Date.now();
+      const cur = best.get(name);
+      if (!cur || score > cur.score || (score === cur.score && date < cur.date)) {
+        best.set(name, { name, score, date });
+      }
+    });
+    return [...best.values()].sort((a, b) => b.score - a.score || a.date - b.date);
   }
-  function renderBoard(container, highlight) {
-    const list = loadBoard();
-    if (!list.length) { container.innerHTML = '<div class="empty-board">아직 기록이 없어요.<br>첫 번째 도전자가 되어보세요!</div>'; return; }
+  async function fetchRemote() {
+    try {
+      const res = await fetch(BLOB_URL, { headers: { "Accept": "application/json" } });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return Array.isArray(data.scores) ? data.scores : [];
+    } catch (e) { return null; }
+  }
+  async function pushRemote(list) {
+    try {
+      const res = await fetch(BLOB_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ scores: list }),
+      });
+      return res.ok;
+    } catch (e) { return false; }
+  }
+  // Pull remote, merge with local, save & push the union. Returns {list, online}.
+  async function syncBoard() {
+    const local = loadLocal();
+    const remote = await fetchRemote();
+    if (remote === null) return { list: mergeScores(local), online: false };
+    const merged = mergeScores(remote, local);
+    saveLocal(merged);
+    const changed = merged.length !== remote.length ||
+      merged.some(m => !remote.find(r => r.name === m.name && +r.score === m.score));
+    if (changed) await pushRemote(merged);
+    return { list: merged, online: true };
+  }
+  // Submit a finished game; returns {list, isRecord, prevBest, online}.
+  async function submitScore(name, sc) {
+    const remote = await fetchRemote();
+    const local = loadLocal();
+    const prev = mergeScores(remote || [], local).find(e => e.name === name);
+    const prevBest = prev ? prev.score : -1;
+    const isRecord = sc > prevBest;
+    const merged = mergeScores(remote || [], local, [{ name, score: sc, date: Date.now() }]);
+    saveLocal(merged);
+    const online = (remote !== null) ? await pushRemote(merged) : false;
+    return { list: merged, isRecord, prevBest, online };
+  }
+  function loadingBoard(container) {
+    container.innerHTML = '<div class="empty-board">랭킹 불러오는 중…</div>';
+  }
+  function renderBoard(container, highlight, list) {
+    if (!list || !list.length) { container.innerHTML = '<div class="empty-board">아직 기록이 없어요.<br>첫 번째 도전자가 되어보세요!</div>'; return; }
     let html = '<h3>RANKING</h3>';
-    list.slice(0, 10).forEach((e, i) => {
+    list.slice(0, 20).forEach((e, i) => {
       const me = (e.name === highlight) ? " me" : "";
       const rcls = i < 3 ? " r" + (i + 1) : "";
       const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
@@ -840,9 +884,8 @@
     hint.textContent = "1번째 킥 — 준비!";
   }
 
-  function endGame() {
+  async function endGame() {
     state = "done";
-    const { isRecord, prevBest } = recordScore(playerName, score);
     $("finalScore").textContent = score;
     let title = "경기 종료!";
     if (score === TOTAL_KICKS) title = "🔥 퍼펙트!";
@@ -850,15 +893,22 @@
     else if (score >= 2) title = "잘했어요!";
     else title = "다음엔 더 잘할 수 있어요!";
     $("resultTitle").textContent = title;
+    $("recordBadge").innerHTML = "";
+    loadingBoard($("resultBoard"));
+    $("resultOverlay").classList.remove("hidden");
 
+    const { list, isRecord, prevBest, online } = await submitScore(playerName, score);
     const badge = $("recordBadge");
-    if (isRecord && (prevBest < 0 || score > prevBest)) {
-      badge.innerHTML = '<span class="new-record">🎉 자기 최고 기록!</span>';
+    if (isRecord) {
+      badge.innerHTML = '<span class="new-record">🎉 최고 기록 경신!</span>';
     } else {
       badge.innerHTML = `<div class="result-line" style="opacity:.6">내 최고 기록: ${Math.max(prevBest, score)} / 5</div>`;
     }
-    renderBoard($("resultBoard"), playerName);
-    $("resultOverlay").classList.remove("hidden");
+    renderBoard($("resultBoard"), playerName, list);
+    if (!online) {
+      $("resultBoard").insertAdjacentHTML("afterbegin",
+        '<div class="empty-board" style="padding:8px;color:#ffd23f">⚠️ 오프라인 — 인터넷 연결 시 공용 랭킹에 반영돼요</div>');
+    }
   }
 
   // ---------- Action button ----------
@@ -887,13 +937,21 @@
     $("resultOverlay").classList.add("hidden");
     $("startOverlay").classList.remove("hidden");
   });
-  $("boardBtn").addEventListener("click", () => {
-    renderBoard($("boardList"), playerName);
+  $("boardBtn").addEventListener("click", async () => {
     $("boardOverlay").classList.remove("hidden");
+    loadingBoard($("boardList"));
+    const { list, online } = await syncBoard();
+    renderBoard($("boardList"), $("nameInput").value.trim(), list);
+    if (!online) $("boardList").insertAdjacentHTML("afterbegin",
+      '<div class="empty-board" style="padding:8px;color:#ffd23f">⚠️ 오프라인 — 이 기기 기록만 표시 중</div>');
   });
   $("boardBackBtn").addEventListener("click", () => $("boardOverlay").classList.add("hidden"));
-  $("clearBtn").addEventListener("click", () => {
-    if (confirm("모든 랭킹 기록을 지울까요?")) { saveBoard([]); renderBoard($("boardList"), playerName); }
+  $("clearBtn").addEventListener("click", async () => {
+    if (confirm("공용 랭킹의 모든 기록을 지웁니다.\n친구들 기록까지 전부 삭제돼요. 계속할까요?")) {
+      saveLocal([]);
+      await pushRemote([]);
+      renderBoard($("boardList"), playerName, []);
+    }
   });
 
   // init
